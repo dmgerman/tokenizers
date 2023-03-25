@@ -45,7 +45,6 @@ std::string mytrim(const std::string& str,
                    const std::string& whitespace = " \t\n")
 {
     std::size_t strBegin = str.find_first_not_of(whitespace);
-//    std::cout << "---[" << str << "]" << strBegin << std::endl;
 
     if (strBegin == std::string::npos)
         return ""; // no content
@@ -61,7 +60,6 @@ std::string mytrimBegin(const std::string& str,
                  const std::string& whitespace = " \t\n")
 {
     std::size_t strBegin = str.find_first_not_of(whitespace);
-//    std::cout << "---[" << str << "]" << strBegin << std::endl;
 
     if (strBegin == std::string::npos)
         return ""; // no content
@@ -85,21 +83,13 @@ std::pair<int,int> findRow(int position) {
 
 
 std::string srcml2tokenHandlers::newGetPosition() {
-//    std::cout << "position [" << currentContentOriginal  << "]";
 
     auto st = mytrimBegin(currentContentOriginal);
 
-//    int whitespace = currentContentOriginal.size() - st.size();
     int beginning = all_size - st.size();
 
     auto prevRow = findRow(beginning);
 
-    //std::cout <<"prev row " << prevRow.first << ":" << prevRow.second  << std::endl;
-    
-/*
-    return std::to_string(all_size - st.size()) + ":" +
-        std::to_string(row) + ":" + std::to_string(col-1);
-*/
     auto col = beginning + 1 -  prevRow.first;
     return std::to_string(prevRow.second) + ":" + std::to_string(col);
 }
@@ -157,7 +147,7 @@ void srcml2tokenHandlers::startElement(const XMLCh* const //uri
 
     if (depth <= 1)  {
 
-        //std::cout << "-" << "\t" << tagName << " " << depth << std::endl;
+        //outputSt << "-" << "\t" << tagName << " " << depth << std::endl;
 
         if (tagLocal == "unit") {
 
@@ -166,22 +156,22 @@ void srcml2tokenHandlers::startElement(const XMLCh* const //uri
             auto revision = get_attribute_value(attrs, "revision");
             auto language = get_attribute_value(attrs, "language");
             if (revision != "" && language != "") {
-                std::cout << "-:-" << "\t" << "begin_unit|" <<
+                outputSt << "-:-" << "\t" << "begin_unit|" <<
                     "revision:" << revision << ";" <<
                     "language:" << language << ";" <<
                     "cregit-version:" << CREGIT_VERSION <<
                     std::endl;
             } else {
-                std::cout << "-:-" << "\t" << "begin_" << tagLocal << std::endl;
+                outputSt << "-:-" << "\t" << "begin_" << tagLocal << std::endl;
             }
         } else {
-            std::cout << "-:-" << "\t" << "begin_" << tagLocal << std::endl;
+            outputSt << "-:-" << "\t" << "begin_" << tagLocal << std::endl;
         }
     }
 
     if (currentContent.length() > 0 ) {
         // we output the content of the previous tag here...
-        std::cout << newGetPosition() << "\t" << currentContent << std::endl;
+        outputSt << newGetPosition() << "\t" << currentContent << std::endl;
         currentContent = "";
         currentContentOriginal = "";
     }
@@ -204,7 +194,7 @@ void srcml2tokenHandlers::endElement (const XMLCh *const /*uri*/,
 
     // No escapes are legal here
     if (currentContent.length() > 0 ) {
-        std::cout << newGetPosition() << "\t" << currentContent << std::endl;
+        outputSt << newGetPosition() << "\t" << currentContent << std::endl;
 
         currentContent = "";
         currentContentOriginal = "";
@@ -217,7 +207,7 @@ void srcml2tokenHandlers::endElement (const XMLCh *const /*uri*/,
     toOutputStack.pop();
     depth--;
     if (depth <= 1) 
-        std::cout << "-:-" << "\t" << "end_" << tagName << std::endl;
+        outputSt << "-:-" << "\t" << "end_" << tagName << std::endl;
 
 }
 
@@ -229,7 +219,7 @@ void srcml2tokenHandlers::characters(  const   XMLCh* const    chars
     std::string st = mytrim(original);
     std::string node = mystack.top();
 
-//    std::cout << "ORIGInAL [" << original <<"]" << std::endl;
+//    outputSt << "ORIGInAL [" << original <<"]" << std::endl;
     advance(original);
     currentContentOriginal+= original;
     
@@ -252,6 +242,7 @@ void srcml2tokenHandlers::ignorableWhitespace( const   XMLCh* const /* chars */
 
 void srcml2tokenHandlers::startDocument()
 {
+    outputSt.str(""); // initialize the output
 }
 
 
@@ -285,4 +276,9 @@ void srcml2tokenHandlers::warning(const SAXParseException& e)
 void srcml2tokenHandlers::resetErrors()
 {
 
+}
+
+std::string srcml2tokenHandlers::tokens()
+{
+    return outputSt.str();
 }

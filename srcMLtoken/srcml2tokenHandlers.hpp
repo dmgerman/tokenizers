@@ -24,6 +24,7 @@
 #include <string>
 #include <xercesc/sax2/Attributes.hpp>
 #include <xercesc/sax2/DefaultHandler.hpp>
+#include <sstream>
 
 XERCES_CPP_NAMESPACE_USE
 
@@ -56,6 +57,7 @@ public:
     void setPosition(const Attributes& attrs);
     std::string position(const Attributes& attrs);
     void advance(std::string st);
+    std::string tokens();
 
 private:
     bool            fSawErrors;
@@ -70,4 +72,5 @@ private:
     std::stack<std::string> mystack;
     std::stack<int> toOutputStack;
     std::stack<std::string> fStack;
+    std::ostringstream outputSt;
 };

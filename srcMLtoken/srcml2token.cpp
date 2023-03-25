@@ -23,6 +23,10 @@
 #include "srcml2token.hpp"
 #include <xercesc/util/OutOfMemoryException.hpp>
 #include <xercesc/framework/MemBufInputSource.hpp>
+#include <srcml.h>
+#include <string>
+#include <iostream>
+#include <fstream>
 
 // ---------------------------------------------------------------------------
 //  Local helper methods
@@ -31,10 +35,71 @@ void usage()
 {
     XERCES_STD_QUALIFIER cout << "\nUsage:\n"
             "    srcml2token  <XML file>\n\n"
-            "This program converts the output of srcML into a simplified tokenized version\n"
+            "This program converts a source code file into a simplified tokenized version\n"
          << XERCES_STD_QUALIFIER endl;
 }
 
+/*
+xercesc::MemBufInputSource source_to_srcml(const std::string &src) {
+    
+    struct srcml_archive* archive = srcml_archive_create();
+    struct srcml_unit* unit = srcml_unit_create(archive);
+    srcml_unit_set_language(unit, SRCML_LANGUAGE_C);
+    srcml_unit_parse_memory(unit, src.c_str(), src.size());
+    const char *result = srcml_unit_get_srcml(unit);
+
+    printf("%s\n", result);
+
+    xercesc::MemBufInputSource buf((XMLByte*)result, strlen(result),
+                                   "sml(in memory)");
+
+    srcml_unit_free(unit);
+    srcml_archive_free(archive);
+    return buf;
+
+}
+*/
+/*
+convert the string into its srcm equivalent
+
+return a string
+
+in theory we are creating an extra string...
+
+ideally we should return a xercesc::MemBufInputSource  but I was not able do to it
+
+see comment above
+
+*/
+
+std::string source_to_srcml(const std::string &src, const char* language) {
+    
+    struct srcml_archive* archive = srcml_archive_create();
+    struct srcml_unit* unit = srcml_unit_create(archive);
+    srcml_unit_set_language(unit, language);
+    srcml_unit_parse_memory(unit, src.c_str(), src.size());
+    const char *result = srcml_unit_get_srcml(unit);
+    std::string retVal(result);
+    srcml_unit_free(unit);
+    srcml_archive_free(archive);
+    return retVal;
+}
+
+
+// read stdin in one go
+std::string read_stdin()
+{
+    std::string src_code((std::istreambuf_iterator<char>(std::cin)), std::istreambuf_iterator<char>());
+    return src_code;
+}
+
+// read file in one go
+std::string read_file(const std::string& file_name)
+{
+    std::ifstream input(file_name);
+    std::string src_code((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+    return src_code;
+}
 
 // ---------------------------------------------------------------------------
 //  Program entry point
@@ -57,9 +122,6 @@ int main(int argC, char* argV[])
 
     SAX2XMLReader* parser = XMLReaderFactory::createXMLReader();
 
-    srcml2tokenHandlers handler;
-    parser->setContentHandler(&handler);
-    parser->setErrorHandler(&handler);
 
     int errorCount = 0;
     // create a faux scope so that 'src' destructor is called before
@@ -71,21 +133,25 @@ int main(int argC, char* argV[])
         //
         try
         {
-            std::string rip = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n                <unit xmlns=\"http://www.srcML.org/srcML/src\" revision=\"1.0.0\" language=\"C\" filename=\"rip.c\"><function><type><name>int</name></type> <name>main</name><parameter_list>()</parameter_list> <block>{<block_content> <return>return <expr><literal type=\"number\">0</literal></expr>;</return></block_content>}</block></function>"
-                ;
-            std::string rip2 = rip + "\n</unit>";
-
+            // read from standard input if only one file
+            // or from file otherwise
+            std::string contents;
             if (argC < 2) {
-                xercesc::MemBufInputSource buf((XMLByte*)rip.c_str(), rip.size(),
-                                               "rip (in memory)");
-                parser->parse(buf);
-                std::cerr << "Hello world\n";
-                xercesc::MemBufInputSource buf2((XMLByte*)rip2.c_str(), rip2.size(),
-                                               "rip2 (in memory)");
-                parser->parse(buf2);
+                contents = read_stdin();
             } else {
-                parser->parse(argV[1]);
+                contents = read_file(argV[1]);
             }
+            std::string sml = source_to_srcml(contents, SRCML_LANGUAGE_C);
+            // we need to convert the string to a 
+
+            xercesc::MemBufInputSource buf((XMLByte*)sml.c_str(), sml.size(),
+                                           "sml(in memory)");
+
+            srcml2tokenHandlers handler;
+            parser->setContentHandler(&handler);
+            parser->setErrorHandler(&handler);
+            parser->parse(buf);
+            std::cout << handler.tokens();
         }
         catch (const OutOfMemoryException&)
         {

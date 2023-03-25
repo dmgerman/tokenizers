@@ -1,7 +1,7 @@
 default: srcml2token
 
 srcml2token: srcml2token.cpp srcml2tokenHandlers.cpp srcml2tokenHandlers.hpp srcml2token.hpp
-	g++ -g -std=c++11 -O -Wall -pedantic -o srcml2token srcml2token.cpp srcml2tokenHandlers.cpp  -lxerces-c
+	g++ -I/home/dmg/git.w/srcML/src/libsrcml -g -std=c++11 -O -Wall -pedantic -o srcml2token srcml2token.cpp srcml2tokenHandlers.cpp -L/home/dmg/git.w/srcML/build/bin -lxerces-c -lsrcml
 
 test: srcml2token
 	srcml --position --language Java tests/StringUtil.java | ./srcml2token > tests/out/StringUtil.java.token
