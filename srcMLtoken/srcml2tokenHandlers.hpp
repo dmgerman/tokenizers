@@ -34,7 +34,7 @@ public:
     // -----------------------------------------------------------------------
     //  Constructors and Destructor
     // -----------------------------------------------------------------------
-    srcml2tokenHandlers();
+    srcml2tokenHandlers(bool);
     ~srcml2tokenHandlers();
 
 
@@ -73,4 +73,5 @@ private:
     std::stack<int> toOutputStack;
     std::stack<std::string> fStack;
     std::ostringstream outputSt;
+    bool withPositions {false};
 };

@@ -117,10 +117,10 @@ void srcml2tokenHandlers::advance(std::string st) {
 // ---------------------------------------------------------------------------
 //  srcml2tokenHandlers: Constructors and Destructor
 // ---------------------------------------------------------------------------
-srcml2tokenHandlers::srcml2tokenHandlers() :
+srcml2tokenHandlers::srcml2tokenHandlers(bool withPos) :
   depth(0)
 {
-    ;
+    withPositions = withPos;
 }
 
 srcml2tokenHandlers::~srcml2tokenHandlers()
@@ -156,22 +156,34 @@ void srcml2tokenHandlers::startElement(const XMLCh* const //uri
             auto revision = get_attribute_value(attrs, "revision");
             auto language = get_attribute_value(attrs, "language");
             if (revision != "" && language != "") {
-                outputSt << "-:-" << "\t" << "begin_unit|" <<
+                if (withPositions)
+                    outputSt << "-:-" << "\t";
+                
+                outputSt << "begin_unit|" <<
                     "revision:" << revision << ";" <<
                     "language:" << language << ";" <<
                     "cregit-version:" << CREGIT_VERSION <<
                     std::endl;
             } else {
-                outputSt << "-:-" << "\t" << "begin_" << tagLocal << std::endl;
+                if (withPositions)
+                    outputSt << "-:-" << "\t" ;
+                    
+                outputSt << "begin_" << tagLocal << std::endl;
             }
         } else {
-            outputSt << "-:-" << "\t" << "begin_" << tagLocal << std::endl;
+            if (withPositions)
+                outputSt << "-:-" << "\t" ;
+            
+            outputSt << "begin_" << tagLocal << std::endl;
         }
     }
 
     if (currentContent.length() > 0 ) {
         // we output the content of the previous tag here...
-        outputSt << newGetPosition() << "\t" << currentContent << std::endl;
+        if (withPositions) {
+            outputSt << newGetPosition() << "\t" ;
+        }
+        outputSt << currentContent << std::endl;
         currentContent = "";
         currentContentOriginal = "";
     }
@@ -194,7 +206,9 @@ void srcml2tokenHandlers::endElement (const XMLCh *const /*uri*/,
 
     // No escapes are legal here
     if (currentContent.length() > 0 ) {
-        outputSt << newGetPosition() << "\t" << currentContent << std::endl;
+        if (withPositions)
+            outputSt << newGetPosition() << "\t" ;
+        outputSt << currentContent << std::endl;
 
         currentContent = "";
         currentContentOriginal = "";
@@ -206,8 +220,12 @@ void srcml2tokenHandlers::endElement (const XMLCh *const /*uri*/,
     mystack.pop();
     toOutputStack.pop();
     depth--;
-    if (depth <= 1) 
-        outputSt << "-:-" << "\t" << "end_" << tagName << std::endl;
+    if (depth <= 1)  {
+        if (withPositions)
+            outputSt << "-:-" << "\t" ;
+        outputSt << "end_" << tagName << std::endl;
+    }
+
 
 }
 

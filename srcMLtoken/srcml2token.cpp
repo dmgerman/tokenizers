@@ -27,38 +27,20 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <getopt.h>
 
 // ---------------------------------------------------------------------------
 //  Local helper methods
 // ---------------------------------------------------------------------------
 void usage()
 {
-    XERCES_STD_QUALIFIER cout << "\nUsage:\n"
-            "    srcml2token  <XML file>\n\n"
+    std::cerr << "\nUsage:\n"
+            "    srcml2token [-p] [--language=c|c++|java]  <source file>\n\n"
             "This program converts a source code file into a simplified tokenized version\n"
          << XERCES_STD_QUALIFIER endl;
+    exit(1);
 }
 
-/*
-xercesc::MemBufInputSource source_to_srcml(const std::string &src) {
-    
-    struct srcml_archive* archive = srcml_archive_create();
-    struct srcml_unit* unit = srcml_unit_create(archive);
-    srcml_unit_set_language(unit, SRCML_LANGUAGE_C);
-    srcml_unit_parse_memory(unit, src.c_str(), src.size());
-    const char *result = srcml_unit_get_srcml(unit);
-
-    printf("%s\n", result);
-
-    xercesc::MemBufInputSource buf((XMLByte*)result, strlen(result),
-                                   "sml(in memory)");
-
-    srcml_unit_free(unit);
-    srcml_archive_free(archive);
-    return buf;
-
-}
-*/
 /*
 convert the string into its srcm equivalent
 
@@ -104,8 +86,50 @@ std::string read_file(const std::string& file_name)
 // ---------------------------------------------------------------------------
 //  Program entry point
 // ---------------------------------------------------------------------------
-int main(int argC, char* argV[])
+int main(int argc, char* argv[])
 {
+    bool withPositions = false;
+    const char *language = SRCML_LANGUAGE_C;
+    int option_index = 0;
+    char option;
+
+    static struct option long_options[] = {
+        {"language", required_argument, 0, 'l'},
+        {"withPositions", no_argument, 0, 'p'},
+        {0, 0, 0, 0}
+    };
+
+    while ((option = getopt_long(argc, argv, "lp", long_options, &option_index)) != -1) {
+        switch (option) {
+            case 'l':
+                if (optarg!=NULL) {
+                    if (strcmp(optarg, "c++") == 0) {
+                        language = SRCML_LANGUAGE_CXX;
+                    } else if (strcmp(optarg, "c") == 0) {
+                        language = SRCML_LANGUAGE_C;
+                    } else if (strcmp(optarg, "java") == 0) {
+                        language = SRCML_LANGUAGE_JAVA;
+                    } else {
+                        std::cerr << "invalid language: " << optarg << std::endl;
+                        usage();
+                    }
+                } else {
+                    std::cerr << "no language specified with option -l" << std::endl;
+                    usage();
+                }
+                break;
+            case 'p':
+                withPositions = true;
+                std::cerr << "withPositions: true" << std::endl;
+                break;
+            case '?':
+                std::cerr << "unknown option: " << optopt << std::endl;
+                usage();
+                break;
+        }
+    }
+
+
     // Initialize the XML4C system
     try
     {
@@ -136,18 +160,20 @@ int main(int argC, char* argV[])
             // read from standard input if only one file
             // or from file otherwise
             std::string contents;
-            if (argC < 2) {
-                contents = read_stdin();
+
+            if (optind < argc) {
+                contents = read_file(argv[optind]);
             } else {
-                contents = read_file(argV[1]);
+                contents = read_stdin();
             }
-            std::string sml = source_to_srcml(contents, SRCML_LANGUAGE_C);
+
+            std::string sml = source_to_srcml(contents, language);
             // we need to convert the string to a 
 
             xercesc::MemBufInputSource buf((XMLByte*)sml.c_str(), sml.size(),
                                            "sml(in memory)");
 
-            srcml2tokenHandlers handler;
+            srcml2tokenHandlers handler(withPositions);
             parser->setContentHandler(&handler);
             parser->setErrorHandler(&handler);
             parser->parse(buf);
