@@ -5,7 +5,7 @@
 
 int main(int argc, char* argv[]) {
 
-    const char* s = "int main() { return 0; }";
+    const char* s = "int main() {\n return 0; }";
 
     struct srcml_archive* archive = srcml_archive_create();
 
