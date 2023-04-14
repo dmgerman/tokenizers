@@ -15,7 +15,8 @@ import (
 	"go/scanner"
 	"go/token"
 	"io/ioutil"
-	//	"os"
+	"os"
+	"io"
 	"flag"
 )
 
@@ -88,6 +89,8 @@ func check(e error) {
 
 func main() {
 	var filename string
+	var dat []byte
+	var err error
 	
 	printPositions := flag.Bool("p", false, "print positions")
 
@@ -95,12 +98,11 @@ func main() {
 
 	filename = flag.Arg(0);
 
-
-        fmt.Print(*printPositions, "\n");
-        fmt.Print(filename);
-
-
-	dat, err := ioutil.ReadFile(filename)
+	if (filename == "") {
+		dat, err = io.ReadAll(os.Stdin)
+	} else {
+		dat, err = ioutil.ReadFile(filename)
+	}
 
 	check(err)
 
